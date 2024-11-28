@@ -2,7 +2,7 @@
   "name": "gp",
   "version": "1.0.0",
   "description": "Table Booking Application",
-  "type": "module",
+  
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
