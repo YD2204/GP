@@ -1,5 +1,6 @@
 require('dotenv').config(); // Load environment variables
-const { MongoClient, ObjectId } = require("MongoDB");
+const { MongoClient, ObjectId } = require("mongodb");
+
 const collectionName = tablesCollectionName;
 
 const express = require("express");
