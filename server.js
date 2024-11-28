@@ -30,8 +30,7 @@ const client = new MongoClient(mongoUrl, {
 const app = express();
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
-app.use(passport.initialize());
-app.use(passport.session());
+
 app.use(formidable());
 
 
@@ -185,6 +184,8 @@ app.use(
         cookie: { secure: false }, // Use `secure: true` in production with HTTPS
     })
 );
+app.use(passport.initialize());
+app.use(passport.session());
 app.get("/login", (req, res) => {
     res.render("login");
 });
