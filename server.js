@@ -174,6 +174,7 @@ app.post("/create", isLoggedIn, async (req, res) => {
 
         if (existingBooking.length > 0) {
             return res.status(400).send("The selected table is already booked for this time slot.");
+            res.redirect("/content");
         }
 
         // Create the new booking
