@@ -113,22 +113,18 @@ app.get("", (req, res) => {
 passport.use(
     new LocalStrategy(async (username, password, done) => {
         console.log("Attempting login for:", username);
-        try {
-            const user = await findUser({ username });
-            if (!user) {
-                console.log("User not found:", username);
-                return done(null, false, { message: "Invalid username or password" });
-            }
-            const isPasswordValid = await bcrypt.compare(password, user.password);
-            if (!isPasswordValid) {
-                console.log("Invalid password for user:", username);
-                return done(null, false, { message: "Invalid username or password" });
-            }
-            return done(null, user);
-        } catch (err) {
-            console.error("Error in LocalStrategy:", err);
-            return done(err);
+        const user = await findUser({ username });
+        if (!user) {
+            console.log("User not found.");
+            return done(null, false, { message: "Invalid username or password" });
         }
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            console.log("Invalid password.");
+            return done(null, false, { message: "Invalid username or password" });
+        }
+        console.log("User authenticated:", user);
+        return done(null, user);
     })
 );
 
@@ -197,15 +193,38 @@ app.use(passport.session());
 app.get("/login", (req, res) => {
     res.render("login");
 });
-
 app.post(
     "/login",
     passport.authenticate("local", {
-        successRedirect: "/content",
-        failureRedirect: "/login",
-        failureFlash: false,
+        successRedirect: "/content", // Redirect after successful login
+        failureRedirect: "/login",  // Redirect back to login on failure
+        failureFlash: false,        // Optionally enable flash messages
     })
 );
+
+app.post("/login", (req, res, next) => {
+    console.log("Request body:", req.body);
+    passport.authenticate("local", (err, user, info) => {
+        if (err) {
+            console.error("Error during authentication:", err);
+            return next(err);
+        }
+        if (!user) {
+            console.log("Authentication failed:", info);
+            return res.redirect("/login");
+        }
+        req.logIn(user, (err) => {
+            if (err) {
+                console.error("Error during login:", err);
+                return next(err);
+            }
+            console.log("Login successful:", user);
+            return res.redirect("/content");
+        });
+    })(req, res, next);
+});
+
+
 
 app.get("/logout", (req, res) => {
     req.logout((err) => {
