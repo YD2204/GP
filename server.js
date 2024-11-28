@@ -124,28 +124,33 @@ app.get("/create", isLoggedIn, (req, res) => {
 });
 
 app.post("/create", isLoggedIn, async (req, res) => {
-    const { date, time, tableNumber, phone_number } = req.fields;
+    try {
+        const { date, time, tableNumber, phone_number } = req.fields;
 
-    if (!date || !time || !tableNumber || !phone_number) {
-        return res.status(400).send("All fields are required");
+        if (!date || !time || !tableNumber || !phone_number) {
+            return res.status(400).send("All fields are required");
+        }
+
+        const existingBooking = await findDocument(db, { date, time, tableNumber });
+
+        if (existingBooking.length > 0) {
+            return res.status(400).send("The selected table is already booked for this time slot.");
+        }
+
+        const newBooking = {
+            phone_number,
+            date,
+            time,
+            tableNumber: parseInt(tableNumber, 10),
+            userid: req.user.id,
+        };
+
+        await insertDocument(db, newBooking);
+        res.redirect("/content");
+    } catch (error) {
+        console.error("Error in /create:", error);
+        res.status(500).send("Internal Server Error");
     }
-
-    const existingBooking = await findDocument(db, { date, time, tableNumber });
-
-    if (existingBooking.length > 0) {
-        return res.status(400).send("The selected table is already booked for this time slot.");
-    }
-
-    const newBooking = {
-        phone_number,
-        date,
-        time,
-        tableNumber: parseInt(tableNumber, 10),
-        userid: req.user.id,
-    };
-
-    await insertDocument(db, newBooking);
-    res.redirect("/content");
 });
 
 app.get('/api/availability', async (req, res) => {
