@@ -72,28 +72,22 @@ const createUser = async (user) => {
 // Local Strategy for login
 passport.use(
     new LocalStrategy(async (username, password, done) => {
-        console.log("Attempting login for:", username); // Debugging
-        try {
-            const user = await findUser({ username });
-            if (!user) {
-                console.log("User not found:", username);
-                return done(null, false, { message: "Invalid username or password" });
-            }
-
-            const isPasswordValid = await bcrypt.compare(password, user.password);
-            if (!isPasswordValid) {
-                console.log("Invalid password for user:", username);
-                return done(null, false, { message: "Invalid username or password" });
-            }
-
-            console.log("Authentication successful for:", username);
-            return done(null, user);
-        } catch (err) {
-            console.error("Error during authentication:", err);
-            return done(err);
+        console.log("Attempting login for:", username); // Log username attempt
+        const user = await findUser({ username });
+        if (!user) {
+            console.log("User not found:", username); // Log user not found
+            return done(null, false, { message: "Invalid username or password" });
         }
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            console.log("Invalid password for user:", username); // Log invalid password
+            return done(null, false, { message: "Invalid username or password" });
+        }
+        console.log("User authenticated successfully:", username); // Log successful authentication
+        return done(null, user);
     })
 );
+
 
 
 
@@ -151,7 +145,7 @@ app.get("/login", (req, res) => {
 app.post(
     "/login",
     (req, res, next) => {
-        console.log("Received login credentials:", req.body); // Debugging
+        console.log("Request body:", req.body); // Debugging
         passport.authenticate("local", (err, user, info) => {
             if (err) {
                 console.error("Error during authentication:", err);
@@ -172,6 +166,9 @@ app.post(
         })(req, res, next);
     }
 );
+const user = await findUser({ username: "testuser" });
+console.log("User retrieved from database:", user);
+
 
 
 
