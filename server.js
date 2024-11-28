@@ -43,7 +43,7 @@ passport.use(
         {
             clientID: process.env.FACEBOOK_CLIENT_ID,
             clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
-            callbackURL: "http://localhost:8099/auth/facebook/callback",
+            callbackURL: process.env.FACEBOOK_CALLBACK_URL,
         },
         function (token, refreshToken, profile, done) {
             const user = {
