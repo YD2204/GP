@@ -36,7 +36,7 @@ passport.use(
         {
             clientID: "874667274743274",
             clientSecret: "e0bce212a3f2e9107a65d24000995a83",
-            callbackURL: "http://localhost:8099/auth/facebook/callback",
+            callbackURL: "https://gp-qklp.onrender.com/auth/facebook/callback",
         },
         function (token, refreshToken, profile, done) {
             const user = {
