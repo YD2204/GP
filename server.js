@@ -25,6 +25,8 @@ const collectionName = tablesCollectionName;
 const client = new MongoClient(mongoUrl, {
     serverApi: { version: "1", strict: true, deprecationErrors: true },
 });
+app.use(passport.initialize());
+app.use(passport.session());
 
 const app = express();
 app.set("view engine", "ejs");
@@ -40,8 +42,7 @@ app.use(
     })
 );
 
-app.use(passport.initialize());
-app.use(passport.session());
+
 
 let db;
 client.connect()
@@ -344,6 +345,14 @@ app.get("/edit", isLoggedIn, async (req, res) => {
         res.status(500).send("Internal Server Error");
     }
 });
+app.use(
+    session({
+        secret: process.env.SESSION_SECRET || "defaultSecret", // Ensure SESSION_SECRET is set
+        resave: false,
+        saveUninitialized: true,
+        cookie: { secure: false }, // Use `secure: true` in production with HTTPS
+    })
+);
 
 
 app.post("/update", isLoggedIn, async (req, res) => {
