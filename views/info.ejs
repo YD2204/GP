@@ -1,9 +1,17 @@
-<html>
-    <body>
-        <h1>Info</h1>
-        <hr />
-        <b><%= message %></b>
-        <br />
-        <a href="/content">Back to List</a>
-    </body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Info Page</title>
+</head>
+<body>
+    <h1>Information</h1>
+    <p><%= message %></p>
+    <p>Logged in as: <%= user.name %> (ID: <%= user.id %>)</p>
+    <% if (backLink) { %>
+        <button onclick="window.location.href='<%= backLink %>'">Back to Create Page</button>
+    <% } %>
+</body>
 </html>
+
