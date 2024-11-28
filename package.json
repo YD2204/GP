@@ -1,4 +1,8 @@
 {
+  "engines": {
+  "node": ">=14.0.0"
+},
+
   "name": "gp",
   "version": "1.0.0",
   "description": "Table Booking Application",
