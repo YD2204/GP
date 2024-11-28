@@ -277,6 +277,14 @@ app.get("/edit", isLoggedIn, async (req, res) => {
         console.error("Error fetching booking for edit:", error);
         res.status(500).send("Error fetching booking details.");
     }
+    if (existingBooking.length > 0) {
+            // Render a page with an error message and a button to go back to the create page
+            return res.status(400).render("info", {
+                message: "The selected table is already booked for this time slot.",
+                user: req.user,
+                backLink: "/edit"
+            });
+        }
 });
 
 
