@@ -110,6 +110,10 @@ app.get(
         failureRedirect: "/login",
     })
 );
+app.get("/create", isLoggedIn, (req, res) => {
+    res.render("create", { user: req.user });
+});
+
 
 app.get("/", (req, res) => {
     res.redirect("/content");
