@@ -33,14 +33,7 @@ app.set("views", path.join(__dirname, "views"));
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(formidable());
-app.use(
-    session({
-        secret: process.env.SESSION_SECRET,
-        resave: false,
-        saveUninitialized: true,
-        cookie: { secure: false },
-    })
-);
+
 
 
 
@@ -184,6 +177,14 @@ app.use((req, res, next) => {
     console.log(`TRACE: ${req.path} was requested at ${d.toLocaleDateString()}`);
     next();
 });
+app.use(
+    session({
+        secret: process.env.SESSION_SECRET || "defaultSecret", // Ensure SESSION_SECRET is set
+        resave: false,
+        saveUninitialized: true,
+        cookie: { secure: false }, // Use `secure: true` in production with HTTPS
+    })
+);
 app.get("/login", (req, res) => {
     res.render("login");
 });
@@ -345,14 +346,7 @@ app.get("/edit", isLoggedIn, async (req, res) => {
         res.status(500).send("Internal Server Error");
     }
 });
-app.use(
-    session({
-        secret: process.env.SESSION_SECRET || "defaultSecret", // Ensure SESSION_SECRET is set
-        resave: false,
-        saveUninitialized: true,
-        cookie: { secure: false }, // Use `secure: true` in production with HTTPS
-    })
-);
+
 
 
 app.post("/update", isLoggedIn, async (req, res) => {
