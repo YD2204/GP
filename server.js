@@ -373,7 +373,7 @@ app.get("/delete", isLoggedIn, async (req, res) => {
             user: req.user,
              message: "Booking not found.",
             backLink: `/content`
-        }
+        });
     } catch (err) {
         console.error("Error deleting booking:", err);
         res.status(500).send("Failed to delete booking.");
