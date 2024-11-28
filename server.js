@@ -65,7 +65,14 @@ const findUser = async (criteria) => {
     return user;
 };
 
+const createUser = async (user) => {
+    const collection = db.collection(usersCollectionName);
+    return await collection.insertOne(user);
+};
+
+// Now, you can call createUser safely
 await createUser({ username: username.toLowerCase(), password: hashedPassword });
+
 
 
 const createUser = async (user) => {
