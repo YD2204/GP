@@ -1,8 +1,4 @@
 {
-  "engines": {
-  "node": ">=14.0.0"
-},
-
   "name": "gp",
   "version": "1.0.0",
   "description": "Table Booking Application",
@@ -22,7 +18,7 @@
     "express-session": "^1.17.3",
     "express-formidable": "^1.2.0"
   },
-  "keywords": [],
-  "author": "Your Name",
-  "license": "ISC"
+  "engines": {
+    "node": ">=14.0.0"
+  }
 }
