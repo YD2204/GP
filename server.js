@@ -131,7 +131,9 @@ const isLoggedIn = (req, res, next) => {
   if (req.isAuthenticated()) return next();
   res.redirect("/login");
 };
-
+app.get("/", (req, res) => {
+    res.redirect("/login"); // Redirect to login page
+});
 // Routes
 app.get("/login", (req, res) => {
   res.render("login");
