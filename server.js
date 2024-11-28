@@ -77,6 +77,11 @@ const findDocument = async (db, criteria) => {
     const collection = db.collection(collectionName);
     return await collection.find(criteria).toArray();
 };
+const updateDocument = async (db, criteria, update) => {
+    const collection = db.collection(collectionName);
+    return await collection.updateOne(criteria, { $set: update });
+};
+
 
 // Middleware to check if user is logged in
 const isLoggedIn = (req, res, next) => {
@@ -265,14 +270,7 @@ app.get("/edit", isLoggedIn, async (req, res) => {
 
 // Route to handle booking update
 app.post("/update", isLoggedIn, async (req, res) => {
-    const bookingId = req.fields._id;
-
-    if (!bookingId) {
-        return res.status(400).send("Booking ID is required.");
-    }
-
     try {
-        // Prepare updated booking details
         const updatedBooking = {
             date: req.fields.date,
             time: req.fields.time,
@@ -280,19 +278,24 @@ app.post("/update", isLoggedIn, async (req, res) => {
             phone_number: req.fields.phone_number,
         };
 
-        // Update the booking in the database
-        const result = await updateDocument(db, { _id: new ObjectId(bookingId) }, updatedBooking);
+        // Check if the _id field exists
+        if (!req.fields._id) {
+            return res.status(400).send("Booking ID is required.");
+        }
 
-        if (result.modifiedCount === 0) {
-            return res.status(404).send("Booking not found or no changes made.");
+        const result = await updateDocument(db, { _id: new ObjectId(req.fields._id) }, updatedBooking);
+        
+        if (result.matchedCount === 0) {
+            return res.status(404).send("Booking not found.");
         }
 
         res.redirect("/content");
-    } catch (err) {
-        console.error("Error updating booking:", err);
+    } catch (error) {
+        console.error("Error updating booking:", error);
         res.status(500).send("Error updating booking.");
     }
 });
+
 
 // Route to delete a specific booking
 app.get("/delete", isLoggedIn, async (req, res) => {
