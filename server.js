@@ -23,7 +23,8 @@ const client = new MongoClient(mongoUrl, {
 
 const app = express();
 app.set("view engine", "ejs");
-app.set("views", __dirname + "/views");
+app.set("views", path.join(__dirname, "views"));
+
 app.use(formidable());
 app.use(
     session({
