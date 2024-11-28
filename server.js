@@ -153,6 +153,7 @@ app.post("/create", isLoggedIn, async (req, res) => {
     }
 });
 
+
 app.get('/api/availability', async (req, res) => {
     const { date, time } = req.query;
 
