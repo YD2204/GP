@@ -26,8 +26,10 @@ app.use(
         secret: process.env.SESSION_SECRET,
         resave: false,
         saveUninitialized: true,
+        cookie: { secure: false }, // Secure should be true in production with HTTPS
     })
 );
+
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -90,17 +92,18 @@ passport.use(
 );
 
 passport.serializeUser((user, done) => {
-    done(null, user._id);
+    done(null, user._id); // Use the user's ID to identify the session
 });
 
 passport.deserializeUser(async (id, done) => {
     try {
         const user = await findUser({ _id: new ObjectId(id) });
-        done(null, user);
+        done(null, user); // Attach the user object to the session
     } catch (err) {
         done(err, null);
     }
 });
+
 
 const isLoggedIn = (req, res, next) => {
     if (req.isAuthenticated()) return next();
@@ -163,9 +166,10 @@ app.post(
     passport.authenticate("local", {
         successRedirect: "/content",
         failureRedirect: "/login",
-        failureFlash: false,
+        failureFlash: false, // Optional: Add error messages
     })
 );
+
 app.get("/logout", (req, res) => {
     req.logout((err) => {
         if (err) {
@@ -186,8 +190,13 @@ app.get(
 );
 
 app.get("/", (req, res) => {
-    res.redirect("/content");
+    if (req.isAuthenticated()) {
+        res.redirect("/content");
+    } else {
+        res.redirect("/login");
+    }
 });
+
 
 app.get("/content", isLoggedIn, async (req, res) => {
     const bookings = await findDocument(db, { userid: req.user.id });
