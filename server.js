@@ -9,6 +9,12 @@ import { Strategy as FacebookStrategy } from "passport-facebook";
 import session from "express-session";
 import formidable from "express-formidable";
 import bcrypt from "bcrypt";
+import path from "path"; // Import path for handling file paths
+import { fileURLToPath } from "url"; // Required for __dirname in ES modules
+
+// Define __dirname and __filename for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const mongoUrl = process.env.MONGO_URL;
 const dbName = "tableBooking";
