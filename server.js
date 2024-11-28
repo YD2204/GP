@@ -25,13 +25,13 @@ const collectionName = tablesCollectionName;
 const client = new MongoClient(mongoUrl, {
     serverApi: { version: "1", strict: true, deprecationErrors: true },
 });
-app.use(passport.initialize());
-app.use(passport.session());
+
 
 const app = express();
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
-
+app.use(passport.initialize());
+app.use(passport.session());
 app.use(formidable());
 app.use(
     session({
