@@ -29,20 +29,20 @@ const app = express();
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
-app.use(formidable());
 
 // Session middleware (must be added before passport initialization)
+app.use(formidable()); // Parse form data
 app.use(
     session({
         secret: process.env.SESSION_SECRET || "defaultSecret",
         resave: false,
         saveUninitialized: true,
-        cookie: { secure: false }, // Set to true in production with HTTPS
+        cookie: { secure: false }, // Use `secure: true` in production with HTTPS
     })
 );
-
 app.use(passport.initialize());
 app.use(passport.session());
+
 
 let db;
 client.connect()
@@ -72,18 +72,21 @@ const createUser = async (user) => {
 // Local Strategy for login
 passport.use(
     new LocalStrategy(async (username, password, done) => {
+        console.log("Attempting login for:", username); // Debugging
         try {
             const user = await findUser({ username });
             if (!user) {
-                console.log("User not found");
-                return done(null, false, { message: "Incorrect username" });
+                console.log("User not found:", username);
+                return done(null, false, { message: "Invalid username or password" });
             }
+
             const isPasswordValid = await bcrypt.compare(password, user.password);
             if (!isPasswordValid) {
-                console.log("Invalid password");
-                return done(null, false, { message: "Incorrect password" });
+                console.log("Invalid password for user:", username);
+                return done(null, false, { message: "Invalid username or password" });
             }
-            console.log("Authentication successful");
+
+            console.log("Authentication successful for:", username);
             return done(null, user);
         } catch (err) {
             console.error("Error during authentication:", err);
@@ -91,6 +94,7 @@ passport.use(
         }
     })
 );
+
 
 
 // Facebook Strategy for login
@@ -144,35 +148,33 @@ app.get("/", (req, res) => {
 app.get("/login", (req, res) => {
   res.render("login");
 });
-app.post("/login", (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
-        if (err) {
-            console.error("Authentication error:", err);
-            return next(err);
-        }
-        if (!user) {
-            console.log("Authentication failed:", info.message);
-            return res.redirect("/login");
-        }
-        req.logIn(user, (err) => {
-            if (err) {
-                console.error("Login error:", err);
-                return next(err);
-            }
-            console.log("Login successful:", user);
-            return res.redirect("/content");
-        });
-    })(req, res, next);
-});
-
 app.post(
     "/login",
-    passport.authenticate("local", {
-        successRedirect: "/content",
-        failureRedirect: "/login",
-        failureFlash: false, // Optional: Enable flash messages for debugging
-    })
+    (req, res, next) => {
+        console.log("Received login credentials:", req.body); // Debugging
+        passport.authenticate("local", (err, user, info) => {
+            if (err) {
+                console.error("Error during authentication:", err);
+                return next(err);
+            }
+            if (!user) {
+                console.log("Authentication failed:", info.message);
+                return res.redirect("/login"); // Redirect on failure
+            }
+            req.logIn(user, (err) => {
+                if (err) {
+                    console.error("Error during login:", err);
+                    return next(err);
+                }
+                console.log("Login successful:", user); // Debugging
+                return res.redirect("/content"); // Redirect on success
+            });
+        })(req, res, next);
+    }
 );
+
+
+
 
 
 app.get("/auth/facebook", passport.authenticate("facebook"));
