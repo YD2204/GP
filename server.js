@@ -20,6 +20,7 @@ const mongoUrl = process.env.MONGO_URL;
 const dbName = "tableBooking";
 const usersCollectionName = "users";
 const tablesCollectionName = "tables";
+const collectionName = tablesCollectionName;
 
 const client = new MongoClient(mongoUrl, {
     serverApi: { version: "1", strict: true, deprecationErrors: true },
@@ -30,29 +31,35 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
 app.use(formidable());
-app.use(
-    session({
-        secret: process.env.SESSION_SECRET || "defaultSecret",
-        resave: false,
-        saveUninitialized: true,
-        cookie: { secure: false },
-    })
-);
-app.use(passport.initialize());
-app.use(passport.session());
 
 let db;
-client.connect()
-    .then(() => {
+
+// Connect to the database
+const connectToDatabase = async () => {
+    try {
+        await client.connect();
         db = client.db(dbName);
         console.log("Connected to MongoDB");
-    })
-    .catch((err) => {
+    } catch (err) {
         console.error("Failed to connect to MongoDB:", err);
-        process.exit(1);
-    });
+        process.exit(1); // Exit the application if the database connection fails
+    }
+};
+
+// Middleware to ensure DB connection is ready
+app.use((req, res, next) => {
+    if (!db) {
+        console.error("Database connection is not ready.");
+        return res.status(500).send("Database connection is not ready. Please try again later.");
+    }
+    next();
+});
 
 const findUser = async (criteria) => {
+    if (!db) {
+        console.error("Database connection is not established.");
+        throw new Error("Database connection is not established.");
+    }
     const collection = db.collection(usersCollectionName);
     const standardizedCriteria = { ...criteria };
     if (criteria.username) {
@@ -64,40 +71,35 @@ const findUser = async (criteria) => {
 };
 
 const createUser = async (user) => {
+    if (!db) {
+        console.error("Database connection is not established.");
+        throw new Error("Database connection is not established.");
+    }
     const collection = db.collection(usersCollectionName);
     return await collection.insertOne(user);
 };
 
-passport.serializeUser((user, done) => {
-    console.log("Serializing user:", user);
-    done(null, user._id);
-});
-
-passport.deserializeUser(async (id, done) => {
-    try {
-        const user = await findUser({ _id: new ObjectId(id) });
-        console.log("Deserialized user:", user);
-        done(null, user);
-    } catch (err) {
-        done(err, null);
-    }
-});
-
+// Passport Configuration
 passport.use(
     new LocalStrategy(async (username, password, done) => {
         console.log("Attempting login for:", username);
-        const user = await findUser({ username });
-        if (!user) {
-            console.log("User not found.");
-            return done(null, false, { message: "Invalid username or password" });
+        try {
+            const user = await findUser({ username });
+            if (!user) {
+                console.log("User not found.");
+                return done(null, false, { message: "Invalid username or password" });
+            }
+            const isPasswordValid = await bcrypt.compare(password, user.password);
+            if (!isPasswordValid) {
+                console.log("Invalid password.");
+                return done(null, false, { message: "Invalid username or password" });
+            }
+            console.log("User authenticated:", user);
+            return done(null, user);
+        } catch (err) {
+            console.error("Error in LocalStrategy:", err);
+            return done(err);
         }
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) {
-            console.log("Invalid password.");
-            return done(null, false, { message: "Invalid username or password" });
-        }
-        console.log("User authenticated:", user);
-        return done(null, user);
     })
 );
 
@@ -127,13 +129,39 @@ passport.use(
     )
 );
 
+passport.serializeUser((user, done) => {
+    done(null, user._id);
+});
+
+passport.deserializeUser(async (id, done) => {
+    try {
+        const user = await findUser({ _id: new ObjectId(id) });
+        done(null, user);
+    } catch (err) {
+        done(err, null);
+    }
+});
+
+// Session Configuration
+app.use(
+    session({
+        secret: process.env.SESSION_SECRET || "defaultSecret",
+        resave: false,
+        saveUninitialized: true,
+        cookie: { secure: false },
+    })
+);
+app.use(passport.initialize());
+app.use(passport.session());
+
 const isLoggedIn = (req, res, next) => {
     if (req.isAuthenticated()) return next();
     res.redirect("/login");
 };
 
+// Routes
 app.get("/", (req, res) => {
-    if (req.isAuthenticated && req.isAuthenticated()) {
+    if (req.isAuthenticated()) {
         res.redirect("/content");
     } else {
         res.redirect("/login");
@@ -148,6 +176,9 @@ app.post("/signup", async (req, res) => {
     const { username, password } = req.fields;
     if (!username || !password) {
         return res.status(400).send("Username and password are required.");
+    }
+    if (username.trim().length < 3 || password.trim().length < 6) {
+        return res.status(400).send("Username must be at least 3 characters and password at least 6 characters.");
     }
     const existingUser = await findUser({ username: username.toLowerCase() });
     if (existingUser) {
@@ -186,12 +217,28 @@ app.get("/logout", (req, res) => {
     });
 });
 
+app.get("/auth/facebook", passport.authenticate("facebook"));
+app.get(
+    "/auth/facebook/callback",
+    passport.authenticate("facebook", {
+        successRedirect: "/content",
+        failureRedirect: "/login",
+    })
+);
+
 app.get("/content", isLoggedIn, async (req, res) => {
-    const bookings = await db.collection(tablesCollectionName).find({ userid: req.user.id }).toArray();
+    const bookings = await findDocument(db, { userid: req.user.id });
     res.render("list", { user: req.user, bookings, nBookings: bookings.length });
 });
 
-const port = process.env.PORT || 8099;
-app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
-});
+// Server Start after DB Connection
+const startServer = async () => {
+    await connectToDatabase();
+
+    const port = process.env.PORT || 8099;
+    app.listen(port, () => {
+        console.log(`Server running at http://localhost:${port}`);
+    });
+};
+
+startServer();
