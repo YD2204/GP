@@ -366,9 +366,13 @@ app.get("/delete", isLoggedIn, async (req, res) => {
             res.render("info", {
                 user: req.user,
                 message: "The booking has been deleted successfully.",
+                backLink: `/content`
             });
         } else {
-            return res.status(404).send("Booking not found.");
+            res.render("info", {
+            user: req.user,
+             message: "Booking not found.",
+            backLink: `/content`
         }
     } catch (err) {
         console.error("Error deleting booking:", err);
