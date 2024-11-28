@@ -1,5 +1,7 @@
 require('dotenv').config(); // Load environment variables
-const { MongoClient, ObjectId } = require("mongodb");
+const { MongoClient, ObjectId } = require("MongoDB");
+const collectionName = tablesCollectionName;
+
 const express = require("express");
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
@@ -34,9 +36,15 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 let db;
-client.connect().then(() => {
-    db = client.db(dbName);
-});
+client.connect()
+    .then(() => {
+        db = client.db(dbName);
+        console.log("Connected to MongoDB");
+    })
+    .catch(err => {
+        console.error("Failed to connect to MongoDB:", err);
+        process.exit(1); // Exit if the database connection fails
+    });
 const findUser = async (criteria) => {
     const collection = db.collection(usersCollectionName);
     return await collection.findOne(criteria);
@@ -45,23 +53,7 @@ const createUser = async (user) => {
     const collection = db.collection(usersCollectionName);
     return await collection.insertOne(user);
 };
-passport.use(
-    new LocalStrategy(async (username, password, done) => {
-        try {
-            const user = await findUser({ username });
-            if (!user) {
-                return done(null, false, { message: "Invalid username or password" });
-            }
-            const isPasswordValid = await bcrypt.compare(password, user.password);
-            if (!isPasswordValid) {
-                return done(null, false, { message: "Invalid username or password" });
-            }
-            return done(null, user);
-        } catch (err) {
-            return done(err);
-        }
-    })
-);
+
 
 passport.use(
     new FacebookStrategy(
@@ -103,6 +95,7 @@ passport.deserializeUser(async (id, done) => {
         done(err, null);
     }
 });
+
 passport.use(
     new LocalStrategy(async (username, password, done) => {
         console.log("Attempting login:", username);
