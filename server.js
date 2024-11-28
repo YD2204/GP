@@ -110,11 +110,6 @@ app.get(
         failureRedirect: "/login",
     })
 );
-app.get("/create", isLoggedIn, (req, res) => {
-    res.render("create", { user: req.user });
-});
-
-
 app.get("/", (req, res) => {
     res.redirect("/content");
 });
@@ -122,6 +117,108 @@ app.get("/", (req, res) => {
 app.get("/content", isLoggedIn, async (req, res) => {
     const bookings = await findDocument(db, { userid: req.user.id });
     res.render("list", { user: req.user, bookings, nBookings: bookings.length });
+});
+
+app.get("/create", isLoggedIn, (req, res) => {
+    res.render("create", { user: req.user });
+});
+
+app.post("/create", isLoggedIn, async (req, res) => {
+    const { date, time, tableNumber, phone_number } = req.fields;
+
+    if (!date || !time || !tableNumber || !phone_number) {
+        return res.status(400).send("All fields are required");
+    }
+
+    const existingBooking = await findDocument(db, { date, time, tableNumber });
+
+    if (existingBooking.length > 0) {
+        return res.status(400).send("The selected table is already booked for this time slot.");
+    }
+
+    const newBooking = {
+        phone_number,
+        date,
+        time,
+        tableNumber: parseInt(tableNumber, 10),
+        userid: req.user.id,
+    };
+
+    await insertDocument(db, newBooking);
+    res.redirect("/content");
+});
+
+app.get('/api/availability', async (req, res) => {
+    const { date, time } = req.query;
+
+    if (!date || !time) {
+        return res.status(400).json({ error: 'Date and time are required' });
+    }
+
+    const bookings = await findDocument(db, { date, time });
+
+    const allTables = Array.from({ length: 10 }, (_, i) => i + 1); // Tables 1 to 10
+    const bookedTables = bookings.map(b => b.tableNumber);
+
+    const availableTables = allTables.filter(table => !bookedTables.includes(table));
+
+    res.json({
+        tables: availableTables,
+    });
+});
+
+app.get("/details", isLoggedIn, async (req, res) => {
+    const bookingId = req.query._id;
+
+    if (!bookingId) {
+        return res.status(400).send("Booking ID is required.");
+    }
+
+    try {
+        const booking = await findDocument(db, { _id: new ObjectId(bookingId) });
+        if (booking.length === 0) {
+            return res.status(404).send("Booking not found.");
+        }
+        res.render("details", { user: req.user, booking: booking[0] });
+    } catch (err) {
+        res.status(500).send("Error fetching booking details.");
+    }
+});
+
+app.get("/edit", isLoggedIn, async (req, res) => {
+    const booking = await findDocument(db, { _id: new ObjectId(req.query._id) });
+    res.render("edit", { user: req.user, booking: booking[0] });
+});
+
+app.post("/update", isLoggedIn, async (req, res) => {
+    const updatedBooking = {
+        date: req.fields.date,
+        time: req.fields.time,
+        tableNumber: parseInt(req.fields.tableNumber, 10),
+        phone_number: req.fields.phone_number,
+    };
+
+    await updateDocument(db, { _id: new ObjectId(req.fields._id) }, updatedBooking);
+    res.redirect("/content");
+});
+
+app.get("/delete", isLoggedIn, async (req, res) => {
+    const bookingId = req.query._id;
+
+    if (!bookingId) {
+        return res.status(400).send("Booking ID is required.");
+    }
+
+    const result = await deleteDocument(db, { _id: new ObjectId(bookingId) });
+
+    if (result.deletedCount > 0) {
+        res.render("info", {
+            user: req.user,
+            message: "The booking has been deleted successfully.",
+        });
+    } else {
+        res.status(500).send("Failed to delete booking.");
+    }
 });
 
 app.get("/*", (req, res) => {
