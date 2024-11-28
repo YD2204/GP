@@ -1,17 +1,21 @@
-require('dotenv').config(); // Load environment variables from .env file
+require('dotenv').config(); // Load environment variables
 const { MongoClient, ObjectId } = require("mongodb");
 const express = require("express");
 const passport = require("passport");
+const LocalStrategy = require("passport-local").Strategy;
 const FacebookStrategy = require("passport-facebook").Strategy;
 const session = require("express-session");
 const formidable = require("express-formidable");
+const bcrypt = require("bcrypt");
 
 const mongoUrl = process.env.MONGO_URL;
 const dbName = "tableBooking";
-const collectionName = "tables";
+const usersCollectionName = "users"; // New collection for storing users
+const tablesCollectionName = "tables"; // Existing collection for table bookings
 const client = new MongoClient(mongoUrl, {
     serverApi: { version: "1", strict: true, deprecationErrors: true },
 });
+
 
 const app = express();
 app.set("view engine", "ejs");
@@ -27,12 +31,36 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-passport.serializeUser(function (user, done) {
-    done(null, user);
+let db;
+client.connect().then(() => {
+    db = client.db(dbName);
 });
-passport.deserializeUser(function (id, done) {
-    done(null, id);
-});
+const findUser = async (criteria) => {
+    const collection = db.collection(usersCollectionName);
+    return await collection.findOne(criteria);
+};
+const createUser = async (user) => {
+    const collection = db.collection(usersCollectionName);
+    return await collection.insertOne(user);
+};
+passport.use(
+    new LocalStrategy(async (username, password, done) => {
+        try {
+            const user = await findUser({ username });
+            if (!user) {
+                return done(null, false, { message: "Invalid username or password" });
+            }
+            const isPasswordValid = await bcrypt.compare(password, user.password);
+            if (!isPasswordValid) {
+                return done(null, false, { message: "Invalid username or password" });
+            }
+            return done(null, user);
+        } catch (err) {
+            return done(err);
+        }
+    })
+);
+
 passport.use(
     new FacebookStrategy(
         {
@@ -40,26 +68,67 @@ passport.use(
             clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
             callbackURL: process.env.FACEBOOK_CALLBACK_URL,
         },
-        function (token, refreshToken, profile, done) {
-            const user = {
-                id: profile.id,
-                name: profile.displayName,
-                type: profile.provider,
-            };
-            return done(null, user);
+        async (token, refreshToken, profile, done) => {
+            try {
+                // Check if user already exists in the database
+                let user = await findUser({ facebookId: profile.id });
+                if (!user) {
+                    // Create a new user if not found
+                    user = {
+                        facebookId: profile.id,
+                        username: profile.displayName,
+                        type: "facebook",
+                    };
+                    await createUser(user);
+                }
+                return done(null, user);
+            } catch (err) {
+                return done(err);
+            }
         }
     )
 );
+
+passport.serializeUser((user, done) => {
+    done(null, user._id);
+});
+
+passport.deserializeUser(async (id, done) => {
+    try {
+        const user = await findUser({ _id: new ObjectId(id) });
+        done(null, user);
+    } catch (err) {
+        done(err, null);
+    }
+});
 
 const isLoggedIn = (req, res, next) => {
     if (req.isAuthenticated()) return next();
     res.redirect("/login");
 };
 
-let db;
-client.connect().then(() => {
-    db = client.db(dbName);
+app.get("/signup", (req, res) => {
+    res.render("signup");
 });
+
+app.post("/signup", async (req, res) => {
+    const { username, password } = req.fields;
+    if (!username || !password) {
+        return res.status(400).send("Username and password are required.");
+    }
+
+    const existingUser = await findUser({ username });
+    if (existingUser) {
+        return res.status(400).send("Username is already taken.");
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await createUser({ username, password: hashedPassword });
+    res.redirect("/login");
+});
+
+
+
 
 const insertDocument = async (db, doc) => {
     const collection = db.collection(collectionName);
@@ -88,21 +157,26 @@ app.use((req, res, next) => {
 app.get("/login", (req, res) => {
     res.render("login");
 });
+
+app.post(
+    "/login",
+    passport.authenticate("local", {
+        successRedirect: "/content",
+        failureRedirect: "/login",
+        failureFlash: false,
+    })
+);
 app.get("/logout", (req, res) => {
     req.logout((err) => {
         if (err) {
             console.error("Error logging out:", err);
-            return res.status(500).render("info", {
-                message: "Error logging out. Please try again.",
-                user: req.user || { name: "Guest", type: "Unknown", id: "N/A" },
-            });
+            return res.status(500).send("Error logging out.");
         }
         res.redirect("/login");
     });
 });
 
-app.get("/auth/facebook", passport.authenticate("facebook", { scope: "email" }));
-
+app.get("/auth/facebook", passport.authenticate("facebook"));
 app.get(
     "/auth/facebook/callback",
     passport.authenticate("facebook", {
@@ -110,6 +184,7 @@ app.get(
         failureRedirect: "/login",
     })
 );
+
 app.get("/", (req, res) => {
     res.redirect("/content");
 });
