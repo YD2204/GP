@@ -13,7 +13,7 @@ const formidable = require("express-formidable");
 
 const app = express();
 app.set("view engine", "ejs");
-app.set("views", "/GP/views");
+app.set("views",__dirname+ "/views");
 app.use(formidable());
 app.use(
     session({
