@@ -204,33 +204,77 @@ app.get("/details", isLoggedIn, async (req, res) => {
     }
 
     try {
+        // Convert bookingId to ObjectId and fetch the booking
         const booking = await findDocument(db, { _id: new ObjectId(bookingId) });
-        if (booking.length === 0) {
+
+        if (!booking || booking.length === 0) {
             return res.status(404).send("Booking not found.");
         }
+
+        // Render the booking details
         res.render("details", { user: req.user, booking: booking[0] });
     } catch (err) {
+        console.error("Error fetching booking details:", err);
         res.status(500).send("Error fetching booking details.");
     }
 });
 
+// Route to edit a specific booking
 app.get("/edit", isLoggedIn, async (req, res) => {
-    const booking = await findDocument(db, { _id: new ObjectId(req.query._id) });
-    res.render("edit", { user: req.user, booking: booking[0] });
+    const bookingId = req.query._id;
+
+    if (!bookingId) {
+        return res.status(400).send("Booking ID is required.");
+    }
+
+    try {
+        // Convert bookingId to ObjectId and fetch the booking
+        const booking = await findDocument(db, { _id: new ObjectId(bookingId) });
+
+        if (!booking || booking.length === 0) {
+            return res.status(404).send("Booking not found.");
+        }
+
+        // Render the edit page with booking details
+        res.render("edit", { user: req.user, booking: booking[0] });
+    } catch (err) {
+        console.error("Error fetching booking for edit:", err);
+        res.status(500).send("Error fetching booking details.");
+    }
 });
 
+// Route to handle booking update
 app.post("/update", isLoggedIn, async (req, res) => {
-    const updatedBooking = {
-        date: req.fields.date,
-        time: req.fields.time,
-        tableNumber: parseInt(req.fields.tableNumber, 10),
-        phone_number: req.fields.phone_number,
-    };
+    const bookingId = req.fields._id;
 
-    await updateDocument(db, { _id: new ObjectId(req.fields._id) }, updatedBooking);
-    res.redirect("/content");
+    if (!bookingId) {
+        return res.status(400).send("Booking ID is required.");
+    }
+
+    try {
+        // Prepare updated booking details
+        const updatedBooking = {
+            date: req.fields.date,
+            time: req.fields.time,
+            tableNumber: parseInt(req.fields.tableNumber, 10),
+            phone_number: req.fields.phone_number,
+        };
+
+        // Update the booking in the database
+        const result = await updateDocument(db, { _id: new ObjectId(bookingId) }, updatedBooking);
+
+        if (result.modifiedCount === 0) {
+            return res.status(404).send("Booking not found or no changes made.");
+        }
+
+        res.redirect("/content");
+    } catch (err) {
+        console.error("Error updating booking:", err);
+        res.status(500).send("Error updating booking.");
+    }
 });
 
+// Route to delete a specific booking
 app.get("/delete", isLoggedIn, async (req, res) => {
     const bookingId = req.query._id;
 
@@ -238,14 +282,20 @@ app.get("/delete", isLoggedIn, async (req, res) => {
         return res.status(400).send("Booking ID is required.");
     }
 
-    const result = await deleteDocument(db, { _id: new ObjectId(bookingId) });
+    try {
+        // Delete the booking from the database
+        const result = await deleteDocument(db, { _id: new ObjectId(bookingId) });
 
-    if (result.deletedCount > 0) {
-        res.render("info", {
-            user: req.user,
-            message: "The booking has been deleted successfully.",
-        });
-    } else {
+        if (result.deletedCount > 0) {
+            res.render("info", {
+                user: req.user,
+                message: "The booking has been deleted successfully.",
+            });
+        } else {
+            return res.status(404).send("Booking not found.");
+        }
+    } catch (err) {
+        console.error("Error deleting booking:", err);
         res.status(500).send("Failed to delete booking.");
     }
 });
