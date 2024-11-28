@@ -1,0 +1,19 @@
+<html>
+    <body>
+        <h1>Welcome, <%= user.name %></h1>
+        <hr />
+        <p>You logged in through <b><%= user.type %></b>, user ID is <%= user.id %></p>
+        <h2>Bookings (<%= nBookings %>)</h2>
+        <ul>
+            <% for (var b of bookings) { %>
+                <li>
+                    Date: <%= b.date %>, Time: <%= b.time %>, Table: <%= b.tableNumber %>,
+                    Phone: <%= b.phone_number %> -
+                    <a href="/details?_id=<%= b._id %>">Details</a>
+                </li>
+            <% } %>
+        </ul>
+        <a href="/create">Create a New Booking</a>
+        <p><a href="/logout">Logout</a></p>
+    </body>
+</html>
