@@ -70,15 +70,13 @@ const createUser = async (user) => {
     return await collection.insertOne(user);
 };
 
-// Now, you can call createUser safely
+// Later in the file, you can call createUser
 await createUser({ username: username.toLowerCase(), password: hashedPassword });
 
 
 
-const createUser = async (user) => {
-    const collection = db.collection(usersCollectionName);
-    return await collection.insertOne(user);
-};
+
+
 
 
 passport.use(
