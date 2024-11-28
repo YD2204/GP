@@ -330,7 +330,7 @@ app.post("/update", isLoggedIn, async (req, res) => {
             return res.status(400).render("info", {
                 message: "The selected table is already booked for this time slot.",
                 user: req.user,
-                backLink: `/edit?_id=${bookingId}`
+                backLink: `/details?_id=${bookingId}`
             });
         }
 
