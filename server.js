@@ -388,6 +388,80 @@ app.get("/*", (req, res) => {
     });
 });
 
+
+
+app.get('/api/bookings', async (req, res) => {
+    try {
+        const bookings = await findDocument(req.query);
+        res.status(200).json(bookings);
+    } catch (error) {
+        console.error("Error retrieving bookings:", error);
+        res.status(500).json({ error: "An error occurred while fetching bookings." });
+    }
+});
+
+// 2. Create (POST Method) - Create a new booking
+app.post('/api/bookings', async (req, res) => {
+    const { date, time, tableNumber, phone_number } = req.fields;
+    if (!date || !time || !tableNumber || !phone_number) {
+        return res.status(400).json({ error: "All fields are required." });
+    }
+
+    try {
+        const newBooking = { date, time, tableNumber: parseInt(tableNumber, 10), phone_number };
+        const result = await insertDocument(newBooking);
+        res.status(201).json({ message: "Booking created successfully.", bookingId: result.insertedId });
+    } catch (error) {
+        console.error("Error creating booking:", error);
+        res.status(500).json({ error: "An error occurred while creating the booking." });
+    }
+});
+
+// 3. Update (PUT Method) - Update an existing booking
+app.put('/api/bookings/:id', async (req, res) => {
+    const bookingId = req.params.id;
+
+    if (!ObjectId.isValid(bookingId)) {
+        return res.status(400).json({ error: "Invalid booking ID." });
+    }
+
+    try {
+        const updatedData = req.fields; // You can also use req.body if it's JSON data
+        const result = await updateDocument({ _id: new ObjectId(bookingId) }, updatedData);
+
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ error: "Booking not found." });
+        }
+
+        res.status(200).json({ message: "Booking updated successfully." });
+    } catch (error) {
+        console.error("Error updating booking:", error);
+        res.status(500).json({ error: "An error occurred while updating the booking." });
+    }
+});
+
+// 4. Delete (DELETE Method) - Delete an existing booking
+app.delete('/api/bookings/:id', async (req, res) => {
+    const bookingId = req.params.id;
+
+    if (!ObjectId.isValid(bookingId)) {
+        return res.status(400).json({ error: "Invalid booking ID." });
+    }
+
+    try {
+        const result = await deleteDocument({ _id: new ObjectId(bookingId) });
+
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ error: "Booking not found." });
+        }
+
+        res.status(200).json({ message: "Booking deleted successfully." });
+    } catch (error) {
+        console.error("Error deleting booking:", error);
+        res.status(500).json({ error: "An error occurred while deleting the booking." });
+    }
+});
+
 // Server setup
 const port = process.env.PORT || 8099;
 app.listen(port, () => {
