@@ -135,26 +135,32 @@ app.get("/create", isLoggedIn, (req, res) => {
 
 app.get("/create", isLoggedIn, async (req, res) => {
     try {
-        // Ensure the request provides date and time parameters
+        // Retrieve the `date` and `time` from the query parameters
         const { date, time } = req.query;
 
-        if (!date || !time) {
-            // If date and time are not provided, render the page without tables
-            return res.render("create", {
-                user: req.user,
-                availableTables: [],
-            });
+        // Generate an empty array for availableTables by default
+        let availableTables = [];
+
+        // Check if `date` and `time` are provided
+        if (date && time) {
+            console.log(`Fetching available tables for date: ${date}, time: ${time}`);
+
+            // Fetch all bookings for the selected date and time from the database
+            const bookings = await findDocument(db, { date, time });
+            const bookedTables = bookings.map((b) => b.tableNumber);
+
+            console.log(`Booked tables for date: ${date}, time: ${time}: `, bookedTables);
+
+            // Generate a list of all tables (1 to 10)
+            const allTables = Array.from({ length: 10 }, (_, i) => i + 1);
+            availableTables = allTables.filter((table) => !bookedTables.includes(table));
+
+            console.log(`Available tables for date: ${date}, time: ${time}: `, availableTables);
+        } else {
+            console.log("No date and/or time provided, showing an empty list for available tables.");
         }
 
-        // Fetch all bookings for the selected date and time
-        const bookings = await findDocument(db, { date, time });
-        const bookedTables = bookings.map((b) => b.tableNumber);
-
-        // Generate list of all tables (1 to 10)
-        const allTables = Array.from({ length: 10 }, (_, i) => i + 1);
-        const availableTables = allTables.filter((table) => !bookedTables.includes(table));
-
-        // Render the create page with available tables based on the selected date and time
+        // Render the create page with the available tables based on the selected date and time
         res.render("create", {
             user: req.user,
             availableTables,
@@ -164,6 +170,7 @@ app.get("/create", isLoggedIn, async (req, res) => {
         res.status(500).send("Internal Server Error");
     }
 });
+
 
 
 app.get('/api/availability', async (req, res) => {
