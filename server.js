@@ -229,20 +229,38 @@ app.get("/edit", isLoggedIn, async (req, res) => {
     }
 
     try {
-        // Convert bookingId to ObjectId
+        // Fetch the booking from the database
         const booking = await findDocument(db, { _id: new ObjectId(bookingId) });
 
         if (!booking || booking.length === 0) {
             return res.status(404).send("Booking not found.");
         }
 
-        // Render the edit page with booking details
-        res.render("edit", { user: req.user, booking: booking[0] });
-    } catch (err) {
-        console.error("Error fetching booking for edit:", err);
+        // Fetch all bookings for the same date and time, except the current booking
+        const { date, time } = booking[0];
+        const otherBookings = await findDocument(db, {
+            date,
+            time,
+            _id: { $ne: new ObjectId(bookingId) },
+        });
+
+        // Generate list of all tables (1 to 10)
+        const allTables = Array.from({ length: 10 }, (_, i) => i + 1);
+        const bookedTables = otherBookings.map(b => b.tableNumber);
+        const availableTables = allTables.filter(table => !bookedTables.includes(table));
+
+        // Render the edit page with booking and available tables
+        res.render("edit", {
+            user: req.user,
+            booking: booking[0],
+            availableTables,
+        });
+    } catch (error) {
+        console.error("Error fetching booking for edit:", error);
         res.status(500).send("Error fetching booking details.");
     }
 });
+
 
 
 // Route to handle booking update
