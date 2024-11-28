@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "description": "Table Booking Application",
     "main": "server.js",
-    "engines": {
+    
   
     "scripts": {
         "start": "node server.js"
