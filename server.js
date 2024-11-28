@@ -214,9 +214,46 @@ app.get("/details", isLoggedIn, async (req, res) => {
 });
 
 app.get("/edit", isLoggedIn, async (req, res) => {
-    const booking = await findDocument(db, { _id: new ObjectId(req.query._id) });
-    res.render("edit", { user: req.user, booking: booking[0] });
+    try {
+        const bookingId = req.query._id;
+
+        if (!bookingId) {
+            return res.status(400).send("Booking ID is required.");
+        }
+
+        const booking = await findDocument(db, { _id: new ObjectId(bookingId) });
+
+        if (booking.length === 0) {
+            return res.status(404).send("Booking not found.");
+        }
+
+        const { date, time } = booking[0];
+
+        // Fetch all bookings for the selected date and time, except the current booking
+        const otherBookings = await findDocument(db, {
+            date,
+            time,
+            _id: { $ne: new ObjectId(bookingId) },
+        });
+
+        // Identify booked tables
+        const bookedTables = otherBookings.map((b) => b.tableNumber);
+
+        // Generate list of all tables (1 to 10)
+        const allTables = Array.from({ length: 10 }, (_, i) => i + 1);
+        const availableTables = allTables.filter((table) => !bookedTables.includes(table));
+
+        res.render("edit", {
+            user: req.user,
+            booking: booking[0],
+            availableTables,
+        });
+    } catch (error) {
+        console.error("Error in /edit route:", error);
+        res.status(500).send("Internal Server Error");
+    }
 });
+
 
 app.post("/update", isLoggedIn, async (req, res) => {
     const updatedBooking = {
