@@ -101,7 +101,7 @@ passport.deserializeUser(async (id, done) => {
         done(err, null);
     }
 });
-app.get("/", (req, res) => {
+app.get("", (req, res) => {
     console.log("Is Authenticated:", req.isAuthenticated ? req.isAuthenticated() : "Method not available");
     if (req.isAuthenticated && req.isAuthenticated()) {
         res.redirect("/content");
