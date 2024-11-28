@@ -81,7 +81,10 @@ const updateDocument = async (db, criteria, update) => {
     const collection = db.collection(collectionName);
     return await collection.updateOne(criteria, { $set: update });
 };
-
+const deleteDocument = async (db, criteria) => {
+    const collection = db.collection(collectionName);
+    return await collection.deleteOne(criteria);
+};
 
 // Middleware to check if user is logged in
 const isLoggedIn = (req, res, next) => {
