@@ -48,8 +48,11 @@ client.connect()
     });
 const findUser = async (criteria) => {
     const collection = db.collection(usersCollectionName);
-    return await collection.findOne(criteria);
+    const user = await collection.findOne(criteria);
+    console.log("findUser result:", user); // Debugging log
+    return user;
 };
+
 const createUser = async (user) => {
     const collection = db.collection(usersCollectionName);
     return await collection.insertOne(user);
@@ -99,19 +102,19 @@ passport.deserializeUser(async (id, done) => {
 
 passport.use(
     new LocalStrategy(async (username, password, done) => {
-        console.log("Attempting login:", username);
+        console.log("Attempting login for:", username); // Debugging log
         try {
             const user = await findUser({ username });
             if (!user) {
-                console.log("User not found:", username);
+                console.log("User not found for username:", username); // Debugging log
                 return done(null, false, { message: "Invalid username or password" });
             }
             const isPasswordValid = await bcrypt.compare(password, user.password);
             if (!isPasswordValid) {
-                console.log("Invalid password for user:", username);
+                console.log("Invalid password for user:", username); // Debugging log
                 return done(null, false, { message: "Invalid username or password" });
             }
-            console.log("Login successful for user:", username);
+            console.log("Login successful for user:", username); // Debugging log
             return done(null, user);
         } catch (err) {
             console.error("Error in LocalStrategy:", err);
@@ -119,6 +122,7 @@ passport.use(
         }
     })
 );
+
 
 
 const isLoggedIn = (req, res, next) => {
@@ -132,6 +136,7 @@ app.get("/signup", (req, res) => {
 
 app.post("/signup", async (req, res) => {
     const { username, password } = req.fields;
+
     if (!username || !password) {
         return res.status(400).send("Username and password are required.");
     }
@@ -143,8 +148,12 @@ app.post("/signup", async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     await createUser({ username, password: hashedPassword });
+
+    console.log("User created:", { username }); // Debugging log
+
     res.redirect("/login");
 });
+
 
 
 
