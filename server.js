@@ -49,9 +49,10 @@ client.connect()
 const findUser = async (criteria) => {
     const collection = db.collection(usersCollectionName);
     const user = await collection.findOne(criteria);
-    console.log("findUser result:", user); // Debugging log
+    console.log("findUser result for criteria", criteria, ":", user); // Debugging log
     return user;
 };
+
 
 const createUser = async (user) => {
     const collection = db.collection(usersCollectionName);
@@ -102,26 +103,30 @@ passport.deserializeUser(async (id, done) => {
 
 passport.use(
     new LocalStrategy(async (username, password, done) => {
-        console.log("Attempting login for:", username); // Debugging log
+        console.log("Attempting login for:", username); // Log username attempt
         try {
             const user = await findUser({ username });
             if (!user) {
-                console.log("User not found for username:", username); // Debugging log
+                console.log("User not found:", username); // Log user not found
                 return done(null, false, { message: "Invalid username or password" });
             }
+            console.log("User found:", user); // Log user details
+
             const isPasswordValid = await bcrypt.compare(password, user.password);
             if (!isPasswordValid) {
-                console.log("Invalid password for user:", username); // Debugging log
+                console.log("Invalid password for user:", username); // Log invalid password
                 return done(null, false, { message: "Invalid username or password" });
             }
-            console.log("Login successful for user:", username); // Debugging log
+
+            console.log("Login successful for user:", username); // Log successful login
             return done(null, user);
         } catch (err) {
-            console.error("Error in LocalStrategy:", err);
+            console.error("Error in LocalStrategy:", err); // Log unexpected errors
             return done(err);
         }
     })
 );
+
 
 
 
@@ -145,6 +150,15 @@ app.post("/signup", async (req, res) => {
     if (existingUser) {
         return res.status(400).send("Username is already taken.");
     }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    console.log("Hashed password:", hashedPassword); // Log the hashed password
+    await createUser({ username, password: hashedPassword });
+
+    console.log("User created:", { username, hashedPassword }); // Debug log
+    res.redirect("/login");
+});
+
 
     const hashedPassword = await bcrypt.hash(password, 10);
     await createUser({ username, password: hashedPassword });
