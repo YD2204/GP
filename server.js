@@ -274,15 +274,13 @@ app.get("/edit", isLoggedIn, async (req, res) => {
             });
         }
 
-        // Fetch all bookings for the same date and time, except the current booking
+        // Generate list of all tables (1 to 10)
+        const allTables = Array.from({ length: 10 }, (_, i) => i + 1);
         const otherBookings = await findDocument(db, {
             date,
             time,
-            _id: { $ne: new ObjectId(bookingId) },
+            _id: { $ne: new ObjectId(bookingId) }
         });
-
-        // Generate list of all tables (1 to 10)
-        const allTables = Array.from({ length: 10 }, (_, i) => i + 1);
         const bookedTables = otherBookings.map((b) => b.tableNumber);
         const availableTables = allTables.filter((table) => !bookedTables.includes(table));
 
@@ -301,23 +299,44 @@ app.get("/edit", isLoggedIn, async (req, res) => {
 
 
 
+
 // Route to handle booking update
 app.post("/update", isLoggedIn, async (req, res) => {
-    try {
-        const updatedBooking = {
-            date: req.fields.date,
-            time: req.fields.time,
-            tableNumber: parseInt(req.fields.tableNumber, 10),
-            phone_number: req.fields.phone_number,
-        };
+    const bookingId = req.fields._id;
 
-        // Check if the _id field exists
-        if (!req.fields._id) {
-            return res.status(400).send("Booking ID is required.");
+    // Validate input fields
+    if (!bookingId || !ObjectId.isValid(bookingId)) {
+        return res.status(400).send("Invalid or missing Booking ID.");
+    }
+
+    const updatedBooking = {
+        date: req.fields.date,
+        time: req.fields.time,
+        tableNumber: parseInt(req.fields.tableNumber, 10),
+        phone_number: req.fields.phone_number,
+    };
+
+    try {
+        // Check if another booking exists for the same table, date, and time (excluding the current one)
+        const conflictingBooking = await findDocument(db, {
+            date: updatedBooking.date,
+            time: updatedBooking.time,
+            tableNumber: updatedBooking.tableNumber,
+            _id: { $ne: new ObjectId(bookingId) },
+        });
+
+        if (conflictingBooking.length > 0) {
+            // Render a page with an error message and a button to go back to the edit page
+            return res.status(400).render("info", {
+                message: "The selected table is already booked for this time slot.",
+                user: req.user,
+                backLink: `/edit?_id=${bookingId}`
+            });
         }
 
-        const result = await updateDocument(db, { _id: new ObjectId(req.fields._id) }, updatedBooking);
-        
+        // Proceed with updating the booking
+        const result = await updateDocument(db, { _id: new ObjectId(bookingId) }, updatedBooking);
+
         if (result.matchedCount === 0) {
             return res.status(404).send("Booking not found.");
         }
@@ -328,6 +347,7 @@ app.post("/update", isLoggedIn, async (req, res) => {
         res.status(500).send("Error updating booking.");
     }
 });
+
 
 
 // Route to delete a specific booking
