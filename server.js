@@ -133,30 +133,38 @@ app.get("/create", isLoggedIn, (req, res) => {
     res.render("create", { user: req.user });
 });
 
-app.post("/create", isLoggedIn, async (req, res) => {
-    const { date, time, tableNumber, phone_number } = req.fields;
+app.get("/create", isLoggedIn, async (req, res) => {
+    try {
+        // Ensure the request provides date and time parameters
+        const { date, time } = req.query;
 
-    if (!date || !time || !tableNumber || !phone_number) {
-        return res.status(400).send("All fields are required");
+        if (!date || !time) {
+            // If date and time are not provided, render the page without tables
+            return res.render("create", {
+                user: req.user,
+                availableTables: [],
+            });
+        }
+
+        // Fetch all bookings for the selected date and time
+        const bookings = await findDocument(db, { date, time });
+        const bookedTables = bookings.map((b) => b.tableNumber);
+
+        // Generate list of all tables (1 to 10)
+        const allTables = Array.from({ length: 10 }, (_, i) => i + 1);
+        const availableTables = allTables.filter((table) => !bookedTables.includes(table));
+
+        // Render the create page with available tables based on the selected date and time
+        res.render("create", {
+            user: req.user,
+            availableTables,
+        });
+    } catch (error) {
+        console.error("Error in /create route:", error);
+        res.status(500).send("Internal Server Error");
     }
-
-    const existingBooking = await findDocument(db, { date, time, tableNumber });
-
-    if (existingBooking.length > 0) {
-        return res.status(400).send("The selected table is already booked for this time slot.");
-    }
-
-    const newBooking = {
-        phone_number,
-        date,
-        time,
-        tableNumber: parseInt(tableNumber, 10),
-        userid: req.user.id,
-    };
-
-    await insertDocument(db, newBooking);
-    res.redirect("/content");
 });
+
 
 app.get('/api/availability', async (req, res) => {
     const { date, time } = req.query;
