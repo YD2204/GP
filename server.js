@@ -196,6 +196,60 @@ app.get('/api/availability', async (req, res) => {
     res.json({ tables: availableTables });
 });
 
+app.get("/details", isLoggedIn, async (req, res) => {
+    const bookingId = req.query._id;
+
+    if (!bookingId) {
+        return res.status(400).send("Booking ID is required.");
+    }
+
+    try {
+        const booking = await findDocument(db, { _id: new ObjectId(bookingId) });
+        if (booking.length === 0) {
+            return res.status(404).send("Booking not found.");
+        }
+        res.render("details", { user: req.user, booking: booking[0] });
+    } catch (err) {
+        res.status(500).send("Error fetching booking details.");
+    }
+});
+
+app.get("/edit", isLoggedIn, async (req, res) => {
+    const booking = await findDocument(db, { _id: new ObjectId(req.query._id) });
+    res.render("edit", { user: req.user, booking: booking[0] });
+});
+
+app.post("/update", isLoggedIn, async (req, res) => {
+    const updatedBooking = {
+        date: req.fields.date,
+        time: req.fields.time,
+        tableNumber: parseInt(req.fields.tableNumber, 10),
+        phone_number: req.fields.phone_number,
+    };
+
+    await updateDocument(db, { _id: new ObjectId(req.fields._id) }, updatedBooking);
+    res.redirect("/content");
+});
+
+app.get("/delete", isLoggedIn, async (req, res) => {
+    const bookingId = req.query._id;
+
+    if (!bookingId) {
+        return res.status(400).send("Booking ID is required.");
+    }
+
+    const result = await deleteDocument(db, { _id: new ObjectId(bookingId) });
+
+    if (result.deletedCount > 0) {
+        res.render("info", {
+            user: req.user,
+            message: "The booking has been deleted successfully.",
+        });
+    } else {
+        res.status(500).send("Failed to delete booking.");
+    }
+});
+
 app.get("/*", (req, res) => {
     res.status(404).render("info", {
         message: `${req.path} - Unknown request!`,
