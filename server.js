@@ -129,19 +129,17 @@ app.get("/content", isLoggedIn, async (req, res) => {
     res.render("list", { user: req.user, bookings, nBookings: bookings.length });
 });
 
-app.get("/create", isLoggedIn, (req, res) => {
-    res.render("create", { user: req.user });
-});
+
 
 app.get("/create", isLoggedIn, async (req, res) => {
     try {
         // Retrieve the `date` and `time` from the query parameters
         const { date, time } = req.query;
 
-        // Generate an empty array for availableTables by default
+        // Generate a default empty array for availableTables
         let availableTables = [];
 
-        // Check if `date` and `time` are provided
+        // Only fetch available tables if both date and time are provided
         if (date && time) {
             console.log(`Fetching available tables for date: ${date}, time: ${time}`);
 
@@ -157,10 +155,12 @@ app.get("/create", isLoggedIn, async (req, res) => {
 
             console.log(`Available tables for date: ${date}, time: ${time}: `, availableTables);
         } else {
-            console.log("No date and/or time provided, showing an empty list for available tables.");
+            console.log("No date and/or time provided, showing all tables as available.");
+            // If no date/time provided, assume all tables are available
+            availableTables = Array.from({ length: 10 }, (_, i) => i + 1);
         }
 
-        // Render the create page with the available tables based on the selected date and time
+        // Render the create page with the available tables
         res.render("create", {
             user: req.user,
             availableTables,
@@ -170,6 +170,7 @@ app.get("/create", isLoggedIn, async (req, res) => {
         res.status(500).send("Internal Server Error");
     }
 });
+
 
 
 
