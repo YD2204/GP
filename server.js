@@ -253,7 +253,8 @@ app.get("/edit", isLoggedIn, async (req, res) => {
         if (!booking || booking.length === 0) {
             return res.status(404).send("Booking not found.");
         }
- if (existingBooking.length > 0) {
+     const existingBooking = await findDocument(db, { date, time, tableNumber: parseInt(tableNumber, 10) });
+     if (existingBooking.length > 0) {
             // Render a page with an error message and a button to go back to the create page
             return res.status(400).render("info", {
                 message: "The selected table is already booked for this time slot.",
