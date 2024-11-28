@@ -1,8 +1,6 @@
 require('dotenv').config(); // Load environment variables
 const { MongoClient, ObjectId } = require("mongodb");
 
-const collectionName = tablesCollectionName;
-
 const express = require("express");
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
@@ -15,10 +13,12 @@ const mongoUrl = process.env.MONGO_URL;
 const dbName = "tableBooking";
 const usersCollectionName = "users"; // New collection for storing users
 const tablesCollectionName = "tables"; // Existing collection for table bookings
+
+const collectionName = tablesCollectionName; // Now, tablesCollectionName is defined before this line
+
 const client = new MongoClient(mongoUrl, {
     serverApi: { version: "1", strict: true, deprecationErrors: true },
 });
-
 
 const app = express();
 app.set("view engine", "ejs");
