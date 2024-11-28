@@ -103,6 +103,28 @@ passport.deserializeUser(async (id, done) => {
         done(err, null);
     }
 });
+passport.use(
+    new LocalStrategy(async (username, password, done) => {
+        console.log("Attempting login:", username);
+        try {
+            const user = await findUser({ username });
+            if (!user) {
+                console.log("User not found:", username);
+                return done(null, false, { message: "Invalid username or password" });
+            }
+            const isPasswordValid = await bcrypt.compare(password, user.password);
+            if (!isPasswordValid) {
+                console.log("Invalid password for user:", username);
+                return done(null, false, { message: "Invalid username or password" });
+            }
+            console.log("Login successful for user:", username);
+            return done(null, user);
+        } catch (err) {
+            console.error("Error in LocalStrategy:", err);
+            return done(err);
+        }
+    })
+);
 
 
 const isLoggedIn = (req, res, next) => {
@@ -166,9 +188,10 @@ app.post(
     passport.authenticate("local", {
         successRedirect: "/content",
         failureRedirect: "/login",
-        failureFlash: false, // Optional: Add error messages
+        failureFlash: false,
     })
 );
+
 
 app.get("/logout", (req, res) => {
     req.logout((err) => {
