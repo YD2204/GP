@@ -253,17 +253,28 @@ app.get("/edit", isLoggedIn, async (req, res) => {
         if (!booking || booking.length === 0) {
             return res.status(404).send("Booking not found.");
         }
-     const existingBooking = await findDocument(db, { date, time, tableNumber: parseInt(tableNumber, 10) });
-     if (existingBooking.length > 0) {
-            // Render a page with an error message and a button to go back to the create page
+
+        // Extract `date`, `time`, and `tableNumber` from the existing booking
+        const { date, time, tableNumber } = booking[0];
+
+        // Fetch all bookings for the same date, time, and tableNumber, excluding the current booking
+        const existingBooking = await findDocument(db, {
+            date,
+            time,
+            tableNumber: parseInt(tableNumber, 10),
+            _id: { $ne: new ObjectId(bookingId) }
+        });
+
+        if (existingBooking.length > 0) {
+            // Render a page with an error message and a button to go back to the edit page
             return res.status(400).render("info", {
                 message: "The selected table is already booked for this time slot.",
                 user: req.user,
-                backLink: "/edit"
+                backLink: `/edit?_id=${bookingId}`
             });
         }
+
         // Fetch all bookings for the same date and time, except the current booking
-        const { date, time } = booking[0];
         const otherBookings = await findDocument(db, {
             date,
             time,
@@ -272,8 +283,8 @@ app.get("/edit", isLoggedIn, async (req, res) => {
 
         // Generate list of all tables (1 to 10)
         const allTables = Array.from({ length: 10 }, (_, i) => i + 1);
-        const bookedTables = otherBookings.map(b => b.tableNumber);
-        const availableTables = allTables.filter(table => !bookedTables.includes(table));
+        const bookedTables = otherBookings.map((b) => b.tableNumber);
+        const availableTables = allTables.filter((table) => !bookedTables.includes(table));
 
         // Render the edit page with booking and available tables
         res.render("edit", {
@@ -285,8 +296,8 @@ app.get("/edit", isLoggedIn, async (req, res) => {
         console.error("Error fetching booking for edit:", error);
         res.status(500).send("Error fetching booking details.");
     }
-   
 });
+
 
 
 
