@@ -223,12 +223,13 @@ app.get("/details", isLoggedIn, async (req, res) => {
 app.get("/edit", isLoggedIn, async (req, res) => {
     const bookingId = req.query._id;
 
-    if (!bookingId) {
-        return res.status(400).send("Booking ID is required.");
+    // Validate the booking ID
+    if (!bookingId || !ObjectId.isValid(bookingId)) {
+        return res.status(400).send("Invalid or missing Booking ID.");
     }
 
     try {
-        // Convert bookingId to ObjectId and fetch the booking
+        // Convert bookingId to ObjectId
         const booking = await findDocument(db, { _id: new ObjectId(bookingId) });
 
         if (!booking || booking.length === 0) {
@@ -242,6 +243,7 @@ app.get("/edit", isLoggedIn, async (req, res) => {
         res.status(500).send("Error fetching booking details.");
     }
 });
+
 
 // Route to handle booking update
 app.post("/update", isLoggedIn, async (req, res) => {
