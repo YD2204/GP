@@ -101,6 +101,14 @@ passport.deserializeUser(async (id, done) => {
         done(err, null);
     }
 });
+app.get("/", (req, res) => {
+    console.log("Is Authenticated:", req.isAuthenticated ? req.isAuthenticated() : "Method not available");
+    if (req.isAuthenticated && req.isAuthenticated()) {
+        res.redirect("/content");
+    } else {
+        res.redirect("/login");
+    }
+});
 
 passport.use(
     new LocalStrategy(async (username, password, done) => {
@@ -381,12 +389,7 @@ app.get("/delete", isLoggedIn, async (req, res) => {
     }
 });
 
-app.get("/*", (req, res) => {
-    res.status(404).render("info", {
-        message: `${req.path} - Unknown request!`,
-        user: req.user || { name: "Guest", type: "Unknown", id: "N/A" },
-    });
-});
+
 app.get("/*", (req, res) => {
     res.status(404).render("info", {
         message: `${req.path} - Unknown request!`,
