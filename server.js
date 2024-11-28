@@ -48,10 +48,16 @@ client.connect()
     });
 const findUser = async (criteria) => {
     const collection = db.collection(usersCollectionName);
-    const user = await collection.findOne(criteria);
-    console.log("findUser result for criteria", criteria, ":", user); // Debugging log
+    const standardizedCriteria = { ...criteria };
+    if (criteria.username) {
+        standardizedCriteria.username = criteria.username.toLowerCase();
+    }
+    const user = await collection.findOne(standardizedCriteria);
+    console.log("findUser result for criteria", standardizedCriteria, ":", user); // Debugging log
     return user;
 };
+
+await createUser({ username: username.toLowerCase(), password: hashedPassword });
 
 
 const createUser = async (user) => {
@@ -142,31 +148,38 @@ app.get("/signup", (req, res) => {
 app.post("/signup", async (req, res) => {
     const { username, password } = req.fields;
 
+    // Input validation
     if (!username || !password) {
         return res.status(400).send("Username and password are required.");
     }
+    if (username.trim().length < 3 || password.trim().length < 6) {
+        return res
+            .status(400)
+            .send("Username must be at least 3 characters and password at least 6 characters.");
+    }
 
-    const existingUser = await findUser({ username });
+    // Check for existing user
+    const existingUser = await findUser({ username: username.toLowerCase() });
     if (existingUser) {
         return res.status(400).send("Username is already taken.");
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    console.log("Hashed password:", hashedPassword); // Log the hashed password
-    await createUser({ username, password: hashedPassword });
+    try {
+        // Hash the password
+        const hashedPassword = await bcrypt.hash(password, 10);
+        console.log("Hashed password:", hashedPassword); // Log the hashed password
 
-    console.log("User created:", { username, hashedPassword }); // Debug log
-    res.redirect("/login");
+        // Create new user
+        await createUser({ username: username.toLowerCase(), password: hashedPassword });
+        console.log("User created:", { username, hashedPassword }); // Debug log
+
+        res.redirect("/login");
+    } catch (error) {
+        console.error("Error creating user:", error); // Log any errors
+        res.status(500).send("Internal server error.");
+    }
 });
 
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    await createUser({ username, password: hashedPassword });
-
-    console.log("User created:", { username }); // Debugging log
-
-    res.redirect("/login");
-});
 
 
 
