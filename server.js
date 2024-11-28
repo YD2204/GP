@@ -383,13 +383,13 @@ app.get("/*", (req, res) => {
         user: req.user || { name: "Guest", type: "Unknown", id: "N/A" },
     });
 });
-app.get("/", (req, res) => {
-    if (req.isAuthenticated()) {
-        res.redirect("/content");
-    } else {
-        res.redirect("/login");
-    }
+app.get("/*", (req, res) => {
+    res.status(404).render("info", {
+        message: `${req.path} - Unknown request!`,
+        user: req.user || { name: "Guest", type: "Unknown", id: "N/A" },
+    });
 });
+
 
 const port = process.env.PORT || 8099;
 app.listen(port, () => {
