@@ -164,15 +164,19 @@ app.post("/create", isLoggedIn, async (req, res) => {
     try {
         const { date, time, tableNumber, phone_number } = req.fields;
 
+        // Validate input fields
         if (!date || !time || !tableNumber || !phone_number) {
             return res.status(400).send("All fields are required");
         }
 
-        const existingBooking = await findDocument(db, { date, time, tableNumber });
+        // Check if a booking for the selected table at the specified date and time already exists
+        const existingBooking = await findDocument(db, { date, time, tableNumber: parseInt(tableNumber, 10) });
+
         if (existingBooking.length > 0) {
             return res.status(400).send("The selected table is already booked for this time slot.");
         }
 
+        // Create the new booking
         const newBooking = {
             phone_number,
             date,
@@ -184,7 +188,7 @@ app.post("/create", isLoggedIn, async (req, res) => {
         await insertDocument(db, newBooking);
         res.redirect("/content");
     } catch (error) {
-        console.error("Error in POST /create:", error);
+        console.error("Error in /create:", error);
         res.status(500).send("Internal Server Error");
     }
 });
