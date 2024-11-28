@@ -1,13 +1,14 @@
-require('dotenv').config(); // Load environment variables
-const { MongoClient, ObjectId } = require("mongodb");
+import dotenv from 'dotenv';
+dotenv.config();
 
-const express = require("express");
-const passport = require("passport");
-const LocalStrategy = require("passport-local").Strategy;
-const FacebookStrategy = require("passport-facebook").Strategy;
-const session = require("express-session");
-const formidable = require("express-formidable");
-const bcrypt = require("bcrypt");
+import { MongoClient, ObjectId } from "mongodb";
+import express from "express";
+import passport from "passport";
+import { Strategy as LocalStrategy } from "passport-local";
+import { Strategy as FacebookStrategy } from "passport-facebook";
+import session from "express-session";
+import formidable from "express-formidable";
+import bcrypt from "bcrypt";
 
 const mongoUrl = process.env.MONGO_URL;
 const dbName = "tableBooking";
