@@ -173,8 +173,12 @@ app.post("/create", isLoggedIn, async (req, res) => {
         const existingBooking = await findDocument(db, { date, time, tableNumber: parseInt(tableNumber, 10) });
 
         if (existingBooking.length > 0) {
-            return res.status(400).send("The selected table is already booked for this time slot.");
-            res.redirect("/content");
+            // Render a page with an error message and a button to go back to the create page
+            return res.status(400).render("info", {
+                message: "The selected table is already booked for this time slot.",
+                user: req.user,
+                backLink: "/create"
+            });
         }
 
         // Create the new booking
@@ -193,6 +197,7 @@ app.post("/create", isLoggedIn, async (req, res) => {
         res.status(500).send("Internal Server Error");
     }
 });
+
 
 app.get('/api/availability', async (req, res) => {
     const { date, time } = req.query;
