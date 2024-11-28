@@ -119,9 +119,31 @@ app.get("/content", isLoggedIn, async (req, res) => {
     res.render("list", { user: req.user, bookings, nBookings: bookings.length });
 });
 
-app.get("/create", isLoggedIn, (req, res) => {
-    res.render("create", { user: req.user });
+app.get("/create", isLoggedIn, async (req, res) => {
+    try {
+        const { date, time } = req.query;
+
+        // Fetch all bookings for the selected date and time
+        let bookedTables = [];
+        if (date && time) {
+            const bookings = await findDocument(db, { date, time });
+            bookedTables = bookings.map((b) => b.tableNumber);
+        }
+
+        // Generate list of all tables (1 to 10)
+        const allTables = Array.from({ length: 10 }, (_, i) => i + 1);
+        const availableTables = allTables.filter((table) => !bookedTables.includes(table));
+
+        res.render("create", {
+            user: req.user,
+            availableTables,
+        });
+    } catch (error) {
+        console.error("Error in /create route:", error);
+        res.status(500).send("Internal Server Error");
+    }
 });
+
 
 app.post("/create", isLoggedIn, async (req, res) => {
     try {
