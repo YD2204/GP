@@ -8,7 +8,7 @@ views:login.ejs,create.ejs,list.ejs,details.ejs,edit.ejs,info.ejs
 
 The cloud-based server URL for testing: 
 https://three81project-group65.onrender.com
-Operation guides (like a user flow) for your server - - - 
+Operation guides for your server
 Login/Logout:
 1.click "Login through Facebook" button to login to the /content page
 2.click Logout to logout and back to the login page
