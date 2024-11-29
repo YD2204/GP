@@ -48,13 +48,7 @@ Check Availability:
 curl -X GET "https://three81project-group65.onrender.com/api/availability?date=2024-12-01&time=18:00"
 
 Create a new booking:
-curl -X POST https://three81project-group65.onrender.com/api/bookings \
-     -H "Content-Type: application/x-www-form-urlencoded" \
-     -d "date=2024-12-01" \
-     -d "time=18:00" \
-     -d "tableNumber=5" \
-     -d "phone_number=1234567890" 
-
+curl -X POST "https://three81project-group65.onrender.com/api/bookings" -F"date=2024-11-24" -F"time=10:00" -F"tableNumber=1" -F"phone_number=12345678"
 Update an Existing Booking:
 curl -X PUT https://three81project-group65.onrender.com/api/bookings/"booking_id"/
      -H "Content-Type: application/x-www-form-urlencoded" \
